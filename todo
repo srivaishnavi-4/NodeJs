@@ -1,0 +1,57 @@
+Node.JS learning topics
+Module 1: Node.js Architecture & Core Fundamentals-C
+Learn to manipulate files and system resources without any frameworks
+Core Concepts:
+The V8 Engine and Node.js runtime environment.
+The Event Loop architecture: Timers, I/O polling, setImmediate, and process.nextTick().
+Asynchronous patterns: Refactoring callback hell into native Promises and async/await.
+The Event Emitter pattern and streams (fs.createReadStream).
+CommonJS (require) vs. ECMAScript Modules (import/export).
+Practice: Build a command-line interface (CLI) tool that reads a massive CSV file using streams, filters data, and writes 
+the output to a new text file without exceeding 50MB of RAM usage
+
+Module 2: Express.js Routing & HTTP Architecture
+Transition from raw HTTP modules to Express.js and design the structural foundation of a RESTful API.
+Core Concepts:
+Initializing an Express application and configuring environmental constants via dotenv.
+HTTP request methods (GET, POST, PUT, DELETE, PATCH) and semantic status codes.
+Deconstructing incoming data: req.params, req.query, and processing payloads with express.json().
+Structuring cleanly using express.Router() to segment paths (e.g., /api/v1/users, /api/v1/products).
+Practice: Build a fully routed "Task Manager" API with hardcoded mock memory data that supports pagination via query parameters and nested sub-resource routing (e.g., /tasks/:id/comments)
+
+Module 3: Middleware Mechanics & Data Validation
+Master the lifecycle of an Express request and implement strict validation rules to protect your backend application logic.
+Core Concepts:
+The linear execution pipeline of application-level, router-level, and custom middleware.
+Passing state down the execution pipeline safely using res.locals.
+Global error-handling middleware architecture and creating a custom AppError operational class.
+Request payload validation schemas using Zod or Joi to catch dirty inputs before they trigger server runtime failures.
+Practice: Refactor your previous API to incorporate a centralized error handler that intercepts 404 and 500 errors gracefully. Add strict validation middleware that validates email structures and date formats on incoming requests, returning clean error arrays to clients
+
+Module 4: Database Integration & Object Relational Mapping (ORM/ODM)
+Establish data persistence by connecting your application securely to a database.
+Core Concepts:
+Relational vs. Non-Relational data modeling for Node.js (SQL vs. NoSQL).
+Database connection pooling, indexing strategies, and event listener handle triggers (on('connect'), on('error')).
+Implementing an ODM (Mongoose for MongoDB) or an ORM (Prisma / Sequelize for PostgreSQL/MySQL).
+Defining schemas, managing data relationships (1:Many, Many:Many), and executing data joins or populations.
+Practice: Connect your Express API to a real database (such as MongoDB Atlas or a local PostgreSQL instance). Design models for an E-commerce API layout containing Users, Products, and Orders, implementing transaction handling across multiple collections or tables
+Module 5: Advanced Authentication, Security & RBAC
+Lock down the application using modern token-based security and fine-grained access policies.
+Core Concepts:
+Secure password hashing mechanics using bcrypt or argon2.
+Stateless user sessions using JSON Web Tokens (JWT): Issuing tokens, setting precise shelf lives, and handling payload signing keys.
+Implementing authorization middleware for Role-Based Access Control (RBAC).
+Defensive API hardening: Configuring specialized headers with helmet, white-listing network traffic via cors, and limiting automated attacks with express-rate-limit.
+Practice: Build a secure authentication module. Create endpoints for /register and /login. Build an authentication middleware that decrypts JWT tokens from headers, attaches the payload to the request object, and builds an abstraction layer that allows only users flagged as 'admin' to delete products
+Module 6: Testing, Caching, & Production Deployment
+Verify your code automatically, optimize data retrieval speeds, and push your system to a live production cluster
+Core Concepts:
+Automated endpoint assertion testing using the native Node.js test runner or Jest alongside Supertest.
+Performance scaling: Integrating a Redis layer to cache heavy database queries.
+Process management using PM2 to handle load balancing across multi-core server processors and configuring clustering models.
+Production deployment pipelines: Setting up NODE_ENV=production variables, managing production logs, and deploying to cloud infrastructure.
+Practice: Write a comprehensive suite of integration tests that test your login and database storage paths end-to-end. Deploy your production-ready, secured web server to a cloud hosting platform (like GCP, Render, Railway) with complete environment security toggles activated
+ 
+ 
+For each topic take 1 day for module and also practice. By Next Tuesday we should target to complete these modules. All the best!

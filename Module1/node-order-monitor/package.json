@@ -1,0 +1,12 @@
+{
+  "name": "node-order-monitor",
+  "version": "1.0.0",
+  "description": "Node.js runtime and asynchronous programming POC",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "eventloop": "node src/eventLoopDemo.js",
+    "callback": "node src/callbackDemo.js"
+  },
+  "license": "ISC"
+}

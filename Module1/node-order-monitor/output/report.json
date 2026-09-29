@@ -1,0 +1,15 @@
+{
+  "totalOrders": 10,
+  "totalAmount": 96000,
+  "customers": {
+    "Vaishu": 2,
+    "Anu": 1,
+    "Ravi": 1,
+    "Kavi": 1,
+    "Arun": 1,
+    "Divya": 1,
+    "Manoj": 1,
+    "Keerthi": 1,
+    "Surya": 1
+  }
+}
