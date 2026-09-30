@@ -17,7 +17,8 @@ Initializing an Express application and configuring environmental constants via 
 HTTP request methods (GET, POST, PUT, DELETE, PATCH) and semantic status codes.
 Deconstructing incoming data: req.params, req.query, and processing payloads with express.json().
 Structuring cleanly using express.Router() to segment paths (e.g., /api/v1/users, /api/v1/products).
-Practice: Build a fully routed "Task Manager" API with hardcoded mock memory data that supports pagination via query parameters and nested sub-resource routing (e.g., /tasks/:id/comments)
+Practice: Build a fully routed "Task Manager" API with hardcoded mock memory data that supports pagination via query parameters
+ and nested sub-resource routing (e.g., /tasks/:id/comments)
 
 Module 3: Middleware Mechanics & Data Validation
 Master the lifecycle of an Express request and implement strict validation rules to protect your backend application logic.
@@ -35,15 +36,21 @@ Relational vs. Non-Relational data modeling for Node.js (SQL vs. NoSQL).
 Database connection pooling, indexing strategies, and event listener handle triggers (on('connect'), on('error')).
 Implementing an ODM (Mongoose for MongoDB) or an ORM (Prisma / Sequelize for PostgreSQL/MySQL).
 Defining schemas, managing data relationships (1:Many, Many:Many), and executing data joins or populations.
-Practice: Connect your Express API to a real database (such as MongoDB Atlas or a local PostgreSQL instance). Design models for an E-commerce API layout containing Users, Products, and Orders, implementing transaction handling across multiple collections or tables
+Practice: Connect your Express API to a real database (such as MongoDB Atlas or a local PostgreSQL instance). Design models for an
+ E-commerce API layout containing Users, Products, and Orders, implementing transaction handling across multiple collections or tables
+
 Module 5: Advanced Authentication, Security & RBAC
 Lock down the application using modern token-based security and fine-grained access policies.
 Core Concepts:
 Secure password hashing mechanics using bcrypt or argon2.
 Stateless user sessions using JSON Web Tokens (JWT): Issuing tokens, setting precise shelf lives, and handling payload signing keys.
 Implementing authorization middleware for Role-Based Access Control (RBAC).
-Defensive API hardening: Configuring specialized headers with helmet, white-listing network traffic via cors, and limiting automated attacks with express-rate-limit.
-Practice: Build a secure authentication module. Create endpoints for /register and /login. Build an authentication middleware that decrypts JWT tokens from headers, attaches the payload to the request object, and builds an abstraction layer that allows only users flagged as 'admin' to delete products
+Defensive API hardening: Configuring specialized headers with helmet, white-listing network traffic via cors, and limiting 
+automated attacks with express-rate-limit.
+Practice: Build a secure authentication module. Create endpoints for /register and /login. Build an authentication middleware
+ that decrypts JWT tokens from headers, attaches the payload to the request object, and builds an abstraction layer that allows 
+ only users flagged as 'admin' to delete products
+ 
 Module 6: Testing, Caching, & Production Deployment
 Verify your code automatically, optimize data retrieval speeds, and push your system to a live production cluster
 Core Concepts:
