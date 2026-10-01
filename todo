@@ -10,7 +10,7 @@ CommonJS (require) vs. ECMAScript Modules (import/export).
 Practice: Build a command-line interface (CLI) tool that reads a massive CSV file using streams, filters data, and writes 
 the output to a new text file without exceeding 50MB of RAM usage
 
-Module 2: Express.js Routing & HTTP Architecture
+Module 2: Express.js Routing & HTTP Architecture-C
 Transition from raw HTTP modules to Express.js and design the structural foundation of a RESTful API.
 Core Concepts:
 Initializing an Express application and configuring environmental constants via dotenv.
@@ -27,7 +27,8 @@ The linear execution pipeline of application-level, router-level, and custom mid
 Passing state down the execution pipeline safely using res.locals.
 Global error-handling middleware architecture and creating a custom AppError operational class.
 Request payload validation schemas using Zod or Joi to catch dirty inputs before they trigger server runtime failures.
-Practice: Refactor your previous API to incorporate a centralized error handler that intercepts 404 and 500 errors gracefully. Add strict validation middleware that validates email structures and date formats on incoming requests, returning clean error arrays to clients
+Practice: Refactor your previous API to incorporate a centralized error handler that intercepts 404 and 500 errors gracefully. 
+Add strict validation middleware that validates email structures and date formats on incoming requests, returning clean error arrays to clients
 
 Module 4: Database Integration & Object Relational Mapping (ORM/ODM)
 Establish data persistence by connecting your application securely to a database.
@@ -50,7 +51,7 @@ automated attacks with express-rate-limit.
 Practice: Build a secure authentication module. Create endpoints for /register and /login. Build an authentication middleware
  that decrypts JWT tokens from headers, attaches the payload to the request object, and builds an abstraction layer that allows 
  only users flagged as 'admin' to delete products
- 
+
 Module 6: Testing, Caching, & Production Deployment
 Verify your code automatically, optimize data retrieval speeds, and push your system to a live production cluster
 Core Concepts:
