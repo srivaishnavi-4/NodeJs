@@ -3899,43 +3899,6 @@ global errorHandler
        ↓
 500
 ```
-
----
-
-# 25. Putting the POC Together
-
-A clean Task Manager API structure could look like:
-
-```text
-task-manager/
-│
-├── src/
-│   │
-│   ├── app.js
-│   │
-│   ├── routes/
-│   │   └── task.routes.js
-│   │
-│   ├── controllers/
-│   │   └── task.controller.js
-│   │
-│   ├── middleware/
-│   │   ├── authenticate.js
-│   │   ├── validate.js
-│   │   └── errorHandler.js
-│   │
-│   ├── schemas/
-│   │   └── task.schema.js
-│   │
-│   ├── errors/
-│   │   └── AppError.js
-│   │
-│   └── models/
-│       └── task.model.js
-│
-└── package.json
-```
-
 The important separation is:
 
 | Component     | Responsibility                                |
@@ -3947,12 +3910,8 @@ The important separation is:
 | `AppError`    | Represents expected application failures      |
 | Error Handler | Converts errors into HTTP responses           |
 
----
-
 # The Mental Model to Remember
-
 Think of an Express API as a controlled pipeline.
-
 ```text
              REQUEST
                 |
@@ -3993,18 +3952,13 @@ Think of an Express API as a controlled pipeline.
                |
           ERROR RESPONSE
 ```
-
 ## Key Implementation Rule
-
 Don't make the controller responsible for everything.
-
 Instead:
-
 ```text
 Authentication
       ↓
 authenticate middleware
-
 Authorization
       ↓
 authorize middleware
@@ -4029,5 +3983,2233 @@ Error Response
       ↓
 global error handler
 ```
-
 That separation is what makes the Task Manager POC start looking like an actual backend architecture rather than a collection of routes.
+
+# MODULE4
+# Database Modeling in Node.js 
+## 1. Relational vs Non-Relational Databases
+
+There are two major ways of storing application data.
+
+### Relational Database — SQL
+
+Examples:
+
+* PostgreSQL
+* MySQL
+* SQL Server
+* Oracle
+
+Data is stored in **tables**.
+
+Example:
+
+```text
+Users
+------------------------------------------------
+id | name   | email
+1  | Vaishu | vaishu@gmail.com
+2  | Arun   | arun@gmail.com
+```
+
+```text
+Products
+--------------------------------
+id | name   | price | stock
+1  | Laptop | 55000 | 10
+2  | Mouse  | 800   | 20
+```
+
+Relationships are usually created using **foreign keys**.
+
+```text
+Users
+  |
+  | user_id
+  ↓
+Orders
+```
+
+### Why use SQL?
+
+Use SQL when:
+
+* Data has a fixed structure.
+* Relationships are important.
+* Transactions are critical.
+* You need complex joins and reporting.
+* Data consistency is a high priority.
+
+---
+
+# 2. Non-Relational Database — NoSQL
+
+Examples:
+
+* MongoDB
+* Redis
+* Cassandra
+* DynamoDB
+
+MongoDB stores data as **documents** rather than rows.
+
+Example:
+
+```json
+{
+    "_id": "101",
+    "name": "Vaishu",
+    "email": "vaishu@gmail.com"
+}
+```
+
+A collection is similar to a table:
+
+```text
+MongoDB Database
+│
+├── users
+├── products
+└── orders
+```
+
+### Why use NoSQL?
+
+Use NoSQL when:
+
+* Data structure can change.
+* You want flexible schemas.
+* JSON-like data is convenient.
+* You need to scale horizontally.
+* Your application naturally works with documents.
+
+---
+
+# 3. SQL vs NoSQL
+
+| Feature         | SQL                | NoSQL                         |
+| --------------- | ------------------ | ----------------------------- |
+| Storage         | Tables             | Documents/collections         |
+| Structure       | Fixed/schema-based | Flexible                      |
+| Relationships   | Foreign keys       | References/embedded documents |
+| Joins           | `JOIN`             | `populate()` / aggregation    |
+| Transactions    | Strong support     | Supported in MongoDB          |
+| Example         | PostgreSQL         | MongoDB                       |
+| Node.js library | Prisma/Sequelize   | Mongoose                      |
+
+A simple way to remember:
+
+```text
+SQL
+Table → Row → Column → Foreign Key
+
+MongoDB
+Collection → Document → Field → Reference
+```
+
+---
+
+# 4. What is an ODM?
+
+**ODM = Object Document Mapper**
+
+Mongoose is an ODM for MongoDB.
+
+Without Mongoose, you communicate with MongoDB directly.
+
+With Mongoose:
+
+```text
+Node.js
+   ↓
+Mongoose
+   ↓
+MongoDB
+```
+
+Mongoose allows you to define:
+
+* schemas
+* models
+* validation
+* relationships
+* middleware
+* queries
+* population
+
+Example:
+
+```js
+const mongoose = require("mongoose");
+
+const userSchema = new mongoose.Schema({
+    name: String,
+    email: String
+});
+
+const User = mongoose.model("User", userSchema);
+```
+
+Now:
+
+```js
+const user = await User.create({
+    name: "Vaishu",
+    email: "vaishu@gmail.com"
+});
+```
+
+---
+
+# 5. What is an ORM?
+
+**ORM = Object Relational Mapper**
+
+ORMs are generally used with relational databases.
+
+Popular Node.js ORMs:
+
+```text
+Prisma
+Sequelize
+TypeORM
+```
+
+For example:
+
+```text
+Node.js
+   ↓
+Prisma
+   ↓
+PostgreSQL
+```
+
+The equivalent MongoDB architecture is:
+
+```text
+Node.js
+   ↓
+Mongoose
+   ↓
+MongoDB
+```
+
+So:
+
+```text
+MongoDB → Mongoose → ODM
+
+PostgreSQL/MySQL → Prisma/Sequelize → ORM
+```
+
+---
+
+# 6. Mongoose POC
+
+For your current project, use:
+
+```text
+EcommerceMongoDB/
+│
+├── app.js
+├── .env
+│
+├── config/
+│   └── db.js
+│
+├── models/
+│   ├── User.js
+│   ├── Product.js
+│   └── Order.js
+│
+└── routes/
+    ├── userRoutes.js
+    ├── productRoutes.js
+    └── orderRoutes.js
+```
+
+Install:
+
+```bash
+npm init -y
+npm install express mongoose dotenv
+```
+
+---
+
+# 7. Database Connection
+
+### `.env`
+
+```env
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/ecommerce
+PORT=3000
+```
+
+### `config/db.js`
+
+```js
+const mongoose = require("mongoose");
+
+const connectDB = async () => {
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
+
+        console.log("MongoDB connected successfully");
+    } catch (error) {
+        console.error("MongoDB connection failed:", error.message);
+        process.exit(1);
+    }
+};
+
+module.exports = connectDB;
+```
+
+---
+
+# 8. Connection Event Listeners
+
+Mongoose exposes connection events.
+
+The important ones are:
+
+```js
+mongoose.connection.on("connected", () => {
+    console.log("MongoDB connected");
+});
+
+mongoose.connection.on("error", (error) => {
+    console.error("MongoDB connection error:", error);
+});
+
+mongoose.connection.on("disconnected", () => {
+    console.log("MongoDB disconnected");
+});
+```
+
+You can put them in `db.js`:
+
+```js
+const mongoose = require("mongoose");
+
+const connectDB = async () => {
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
+
+        console.log("MongoDB connected successfully");
+    } catch (error) {
+        console.error("MongoDB connection failed:", error.message);
+    }
+};
+
+mongoose.connection.on("connected", () => {
+    console.log("Database connection event triggered");
+});
+
+mongoose.connection.on("error", (error) => {
+    console.error("Database error:", error.message);
+});
+
+mongoose.connection.on("disconnected", () => {
+    console.log("Database disconnected");
+});
+
+module.exports = connectDB;
+```
+
+### Why use events?
+
+They help monitor the database connection.
+
+```text
+MongoDB connects
+       ↓
+"connected"
+       ↓
+Application continues
+
+Connection fails
+       ↓
+"error"
+       ↓
+Log / handle problem
+
+Connection closes
+       ↓
+"disconnected"
+```
+
+---
+
+# 9. Connection Pooling
+
+A Node.js application may receive many requests:
+
+```text
+Request 1 ──┐
+Request 2 ──┤
+Request 3 ──┼──→ MongoDB
+Request 4 ──┤
+Request 5 ──┘
+```
+
+Creating a completely new database connection for every request would be inefficient.
+
+Instead, the MongoDB driver maintains a **connection pool**.
+
+```text
+             ┌── Connection 1
+Node.js ─────┼── Connection 2
+             ├── Connection 3
+             ├── Connection 4
+             └── Connection 5
+                    ↓
+                 MongoDB
+```
+
+Mongoose uses MongoDB driver's connection pooling.
+
+You normally establish the connection **once when the application starts**, rather than connecting inside every route.
+
+Bad:
+
+```js
+app.get("/users", async (req, res) => {
+
+    await mongoose.connect(process.env.MONGO_URI);
+
+    // query
+
+});
+```
+
+Better:
+
+```js
+connectDB();
+
+app.get("/users", async (req, res) => {
+
+    const users = await User.find();
+
+    res.json(users);
+
+});
+```
+
+### Why?
+
+Because the connection pool can reuse existing connections.
+
+---
+
+# 10. Schema
+
+A schema defines the structure and rules of a MongoDB document.
+
+Example:
+
+```js
+const mongoose = require("mongoose");
+
+const userSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true
+    },
+
+    email: {
+        type: String,
+        required: true,
+        unique: true
+    }
+});
+
+module.exports = mongoose.model("User", userSchema);
+```
+
+This gives us:
+
+```text
+User
+│
+├── name → String
+└── email → String
+```
+
+---
+
+# 11. One-to-Many Relationship
+
+Example:
+
+**One user can have many orders.**
+
+```text
+User
+  │
+  ├── Order 1
+  ├── Order 2
+  └── Order 3
+```
+
+User:
+
+```js
+const userSchema = new mongoose.Schema({
+    name: String,
+    email: String
+});
+```
+
+Order:
+
+```js
+const orderSchema = new mongoose.Schema({
+
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    },
+
+    totalAmount: Number
+
+});
+```
+
+The important part is:
+
+```js
+ref: "User"
+```
+
+It tells Mongoose that the ObjectId refers to a `User` document.
+
+---
+
+# 12. Population
+
+Suppose the database contains:
+
+### User
+
+```json
+{
+    "_id": "U100",
+    "name": "Vaishu",
+    "email": "vaishu@gmail.com"
+}
+```
+
+### Order
+
+```json
+{
+    "_id": "O100",
+    "user": "U100",
+    "totalAmount": 55800
+}
+```
+
+Normally:
+
+```js
+const orders = await Order.find();
+```
+
+You get:
+
+```json
+{
+    "user": "U100",
+    "totalAmount": 55800
+}
+```
+
+But we can populate the user:
+
+```js
+const orders = await Order
+    .find()
+    .populate("user");
+```
+
+Now Mongoose replaces the reference with the user document:
+
+```json
+{
+    "_id": "O100",
+    "user": {
+        "_id": "U100",
+        "name": "Vaishu",
+        "email": "vaishu@gmail.com"
+    },
+    "totalAmount": 55800
+}
+```
+
+This is similar to a SQL join.
+
+```text
+MongoDB                    SQL
+
+.populate("user")    ≈    JOIN users
+```
+
+---
+
+# 13. Many-to-Many Relationship
+
+Example:
+
+A student can enroll in many courses.
+
+A course can contain many students.
+
+```text
+Student A ── Course 1
+          ├─ Course 2
+          └─ Course 3
+
+Student B ── Course 1
+          └─ Course 3
+```
+
+One approach is to store arrays of references.
+
+### Student
+
+```js
+const studentSchema = new mongoose.Schema({
+    name: String,
+
+    courses: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Course"
+        }
+    ]
+});
+```
+
+### Course
+
+```js
+const courseSchema = new mongoose.Schema({
+    name: String
+});
+```
+
+Now:
+
+```js
+const student = await Student
+    .findById(studentId)
+    .populate("courses");
+```
+
+Result:
+
+```json
+{
+    "name": "Vaishu",
+    "courses": [
+        {
+            "_id": "C1",
+            "name": "Node.js"
+        },
+        {
+            "_id": "C2",
+            "name": "MongoDB"
+        }
+    ]
+}
+```
+
+---
+
+# 14. Indexing
+
+Suppose you have:
+
+```text
+1,000,000 users
+```
+
+And you frequently search:
+
+```js
+User.findOne({
+    email: "vaishu@gmail.com"
+});
+```
+
+Without a suitable index, MongoDB may need to examine many documents.
+
+Create an index:
+
+```js
+const userSchema = new mongoose.Schema({
+    name: String,
+
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        index: true
+    }
+});
+```
+
+Now MongoDB can use an index for faster lookup.
+
+### Why indexing?
+
+```text
+Without index
+
+Query
+ ↓
+Check document 1
+ ↓
+Check document 2
+ ↓
+Check document 3
+ ↓
+...
+ ↓
+Find user
+```
+
+With index:
+
+```text
+Query
+ ↓
+Index
+ ↓
+Locate matching document
+```
+
+Common fields to consider indexing:
+
+```text
+email
+username
+product SKU
+order status
+createdAt
+```
+
+But don't index everything.
+
+Indexes consume storage and can make writes more expensive because indexes also need to be updated.
+# 15. Complete E-commerce Relationship
+Your current E-commerce API can model relationships like this:
+```text
+             ┌──────────────┐
+             │     User     │
+             └──────┬───────┘
+                    │
+                    │ 1 : Many
+                    ↓
+             ┌──────────────┐
+             │    Orders    │
+             └──────┬───────┘
+                    │
+                    │ Many : Many
+                    ↓
+             ┌──────────────┐
+             │   Products   │
+             └──────────────┘
+```
+An order contains multiple products:
+```json
+{
+    "user": "USER_ID",
+
+    "items": [
+        {
+            "product": "LAPTOP_ID",
+            "quantity": 2
+        },
+        {
+            "product": "MOUSE_ID",
+            "quantity": 1
+        }
+    ]
+}
+```
+And you can populate both:
+```js
+const orders = await Order
+    .find()
+    .populate("user")
+    .populate("items.product");
+```
+This is particularly useful for your E-commerce POC.
+# 16. SQL Equivalent
+The same E-commerce design in PostgreSQL could look like:
+```text
+users
+----------------
+id
+name
+email
+products
+----------------
+id
+name
+price
+stock
+orders
+----------------
+id
+user_id
+total_amount
+order_items
+----------------
+id
+order_id
+product_id
+quantity
+price
+```
+Relationships:
+```text
+users
+  │
+  │ 1:N
+  ↓
+orders
+  │
+  │ 1:N
+  ↓
+order_items
+  │
+  │ N:1
+  ↓
+products
+```
+SQL query:
+```sql
+SELECT
+    users.name,
+    orders.id,
+    products.name,
+    order_items.quantity
+FROM orders
+JOIN users
+    ON orders.user_id = users.id
+JOIN order_items
+    ON orders.id = order_items.order_id
+JOIN products
+    ON order_items.product_id = products.id;
+```
+
+MongoDB equivalent concept:
+
+```js
+Order.find()
+    .populate("user")
+    .populate("items.product");
+```
+# MODULE5
+## # Node.js Authentication, Authorization & API Security
+
+This documentation covers the theory and practical concepts behind securing a Node.js/Express API using **bcrypt/Argon2, JWT, RBAC, Helmet, CORS, and express-rate-limit**.
+
+---
+
+# 1. Secure Password Hashing
+
+## What is Password Hashing?
+
+Password hashing is the process of converting a user's password into a fixed-format **one-way hash** before storing it in a database.
+
+Instead of storing:
+
+```text
+Password:
+Vaishu@123
+```
+
+the application stores something similar to:
+
+```text
+$2b$12$N9qo8uLOickgx2ZMRZoMye...
+```
+
+The original password cannot be obtained by simply reversing the hash.
+
+### Why is password hashing used?
+
+If an attacker obtains the database, plaintext passwords would immediately be exposed.
+
+Hashing provides an additional layer of protection:
+
+```text
+User Password
+      ↓
+Password Hashing Algorithm
+      ↓
+Password Hash
+      ↓
+Database
+```
+
+During login:
+
+```text
+Entered Password
+      ↓
+Hash Verification
+      ↓
+Compare with Stored Hash
+      ↓
+Match / Reject
+```
+
+The application should **never decrypt a password hash**. Password hashing is designed for verification, not decryption.
+
+---
+
+# 2. Hashing vs Encryption
+
+These concepts are different.
+
+| Hashing                                        | Encryption                      |
+| ---------------------------------------------- | ------------------------------- |
+| One-way operation                              | Reversible with a key           |
+| Used for passwords                             | Used for protecting data        |
+| No decryption                                  | Can be decrypted                |
+| Same password can be verified against its hash | Encrypted data can be recovered |
+| bcrypt, Argon2                                 | AES, RSA                        |
+
+For passwords, use a password-hashing algorithm rather than reversible encryption.
+
+---
+
+# 3. bcrypt
+
+**bcrypt** is a password-hashing algorithm designed specifically to make password guessing computationally expensive.
+
+It incorporates:
+
+* a salt
+* a configurable work factor
+* repeated computational work
+
+A bcrypt hash commonly looks like:
+
+```text
+$2b$12$........................
+```
+
+The structure contains information about the algorithm/version, cost, salt, and resulting hash.
+
+## Why use bcrypt?
+
+bcrypt is designed to slow down password-guessing attacks.
+
+Without password hashing:
+
+```text
+Database
+   ↓
+password = Vaishu@123
+```
+
+With bcrypt:
+
+```text
+Database
+   ↓
+password = $2b$12$............
+```
+
+Even if the database is leaked, the attacker does not directly receive the original passwords.
+
+---
+
+# 4. bcrypt Work Factor
+
+bcrypt has a **cost/work factor**.
+
+Example:
+
+```text
+bcrypt(password, 12)
+```
+
+The value controls how much computational work is required.
+
+Higher work factors generally increase the time required for:
+
+* password hashing
+* password verification
+* password guessing attempts
+
+This is useful because attackers may try large numbers of password guesses.
+
+However, setting the cost excessively high also increases the load on your own authentication server.
+
+### Important principle
+
+The work factor should be:
+
+> **As expensive as practical for your infrastructure while keeping legitimate authentication responsive.**
+
+It should be benchmarked on the actual environment rather than choosing a value blindly.
+
+---
+
+# 5. Salt
+
+A **salt** is a unique random value added to a password before hashing.
+
+Conceptually:
+
+```text
+Password
+   +
+Random Salt
+   ↓
+Hash Function
+   ↓
+Password Hash
+```
+
+Suppose two users have:
+
+```text
+Password: hello123
+```
+
+Without a salt, they could potentially have identical hashes.
+
+With unique salts:
+
+```text
+User A
+hello123 + randomSaltA
+        ↓
+      hash A
+
+User B
+hello123 + randomSaltB
+        ↓
+      hash B
+```
+
+Therefore, identical passwords do not produce identical stored hashes.
+
+Modern password-hashing libraries such as bcrypt and Argon2 handle salt generation as part of the hashing process.
+
+---
+
+# 6. Argon2
+
+**Argon2** is a modern password-hashing algorithm designed to resist password-cracking attacks, particularly attacks using highly parallel hardware.
+
+Argon2 has parameters controlling:
+
+* memory usage
+* computation time
+* parallelism
+
+This makes it **memory-hard**, meaning an attacker needs significant memory resources as well as CPU resources.
+
+### Why use Argon2?
+
+Modern attackers can use:
+
+* GPUs
+* specialized hardware
+* large-scale parallel computation
+
+Argon2 increases the resources required for large-scale password guessing.
+
+---
+
+# 7. bcrypt vs Argon2
+
+| Feature                              | bcrypt      | Argon2              |
+| ------------------------------------ | ----------- | ------------------- |
+| Password hashing                     | Yes         | Yes                 |
+| Salt support                         | Yes         | Yes                 |
+| Configurable cost                    | Yes         | Yes                 |
+| Memory-hard                          | Limited     | Yes                 |
+| Resistant to modern hardware attacks | Good        | Strong              |
+| Widely deployed                      | Very widely | Increasingly common |
+| Node.js package                      | `bcrypt`    | `argon2`            |
+
+### Which should you use?
+
+For a new application, **Argon2id** is generally a strong choice when your available libraries and infrastructure support it.
+
+bcrypt remains a very practical and widely supported choice, especially for existing systems and learning environments.
+
+---
+
+# 8. Password Verification
+
+The application should not hash the supplied password and compare strings manually.
+
+Instead, use the password-hashing library's verification function.
+
+Conceptually:
+
+```text
+Login Password
+      ↓
+Password verification function
+      ↓
+Stored Hash
+      ↓
+Valid / Invalid
+```
+
+For bcrypt:
+
+```js
+await bcrypt.compare(password, storedHash);
+```
+
+The library extracts the necessary salt and cost information from the stored hash and performs the appropriate verification.
+
+---
+
+# 9. Password Security Best Practices
+
+A secure authentication system should:
+
+* Never store plaintext passwords.
+* Never log passwords.
+* Never place passwords inside JWT payloads.
+* Use bcrypt or Argon2.
+* Use a sufficiently strong work factor.
+* Validate password requirements where appropriate.
+* Rate-limit authentication attempts.
+* Use HTTPS.
+* Keep authentication secrets outside source code.
+* Avoid exposing whether an email/account exists during login.
+* Consider compromised-password checks for high-security applications.
+
+---
+
+# 10. JSON Web Token — JWT
+
+**JWT = JSON Web Token**
+
+JWT is a standardized token format commonly used for authentication and authorization.
+
+It allows a server to issue a signed token that a client can present on subsequent requests.
+
+Typical flow:
+
+```text
+Login
+  ↓
+Verify credentials
+  ↓
+Create JWT
+  ↓
+Send JWT to client
+  ↓
+Client sends JWT with future requests
+  ↓
+Server verifies JWT
+```
+
+---
+
+# 11. Stateful vs Stateless Authentication
+
+## Stateful Session
+
+In a traditional stateful session:
+
+```text
+Client
+  ↓
+Session ID
+  ↓
+Server
+  ↓
+Session Store
+```
+
+The server stores information about the session.
+
+For example:
+
+```text
+Session ID: ABC123
+User: 1001
+Role: admin
+```
+
+The client sends:
+
+```text
+ABC123
+```
+
+The server looks up the session.
+
+---
+
+## Stateless Authentication
+
+With JWT:
+
+```text
+Client
+   ↓
+JWT
+   ↓
+Server
+   ↓
+Verify signature
+```
+
+The server does not need a traditional session record for every access token.
+
+The token itself contains claims needed by the application, and the server verifies its signature.
+
+### Why is JWT called stateless?
+
+Because the server can validate a properly signed access token without looking up a corresponding server-side session for every request.
+
+However, this does **not** mean the overall authentication system can never maintain state. Refresh tokens, revocation lists, logout mechanisms, or other security controls can introduce server-side state.
+
+---
+
+# 12. Structure of JWT
+
+A JWT generally contains three Base64URL-encoded parts:
+
+```text
+Header.Payload.Signature
+```
+
+Example:
+
+```text
+xxxxx.yyyyy.zzzzz
+```
+
+They are separated by periods.
+
+---
+
+# 13. JWT Header
+
+The header describes the token.
+
+Example:
+
+```json
+{
+    "alg": "HS256",
+    "typ": "JWT"
+}
+```
+
+`alg` identifies the signing algorithm.
+
+`typ` identifies the token type.
+
+---
+
+# 14. JWT Payload
+
+The payload contains **claims**.
+
+Example:
+
+```json
+{
+    "sub": "12345",
+    "role": "admin",
+    "iat": 1791120000,
+    "exp": 1791120900
+}
+```
+
+Common claims include:
+
+| Claim | Meaning                 |
+| ----- | ----------------------- |
+| `sub` | Subject/user identifier |
+| `iat` | Issued-at time          |
+| `exp` | Expiration time         |
+| `iss` | Issuer                  |
+| `aud` | Audience                |
+| `nbf` | Not valid before        |
+
+Applications can also use custom claims such as:
+
+```json
+{
+    "role": "admin"
+}
+```
+
+---
+
+# 15. JWT Payload Is Not Encrypted
+
+This is one of the most important JWT concepts.
+
+JWT payloads are normally **encoded**, not encrypted.
+
+Therefore, someone who possesses the token can decode the header and payload.
+
+Do not put:
+
+```json
+{
+    "password": "Vaishu@123"
+}
+```
+
+inside a JWT.
+
+Do not put sensitive secrets into the payload.
+
+A JWT signature provides **integrity/authenticity**, not confidentiality.
+
+---
+
+# 16. JWT Signature
+
+The signature protects the token against unauthorized modification.
+
+Conceptually:
+
+```text
+Header
+   +
+Payload
+   +
+Signing Key
+   ↓
+Signature
+```
+
+When the token arrives:
+
+```text
+Header + Payload + Signature
+          ↓
+       Verify
+          ↓
+    Valid / Invalid
+```
+
+If an attacker changes:
+
+```json
+"role": "user"
+```
+
+to:
+
+```json
+"role": "admin"
+```
+
+the existing signature will no longer validate.
+
+---
+
+# 17. JWT Signing Keys
+
+JWTs can be signed using:
+
+### Symmetric signing
+
+Example:
+
+```text
+HS256
+```
+
+The same secret is used to sign and verify the token.
+
+```text
+Signing Server
+      ↓
+  SECRET KEY
+      ↓
+    JWT
+      ↓
+  SECRET KEY
+      ↓
+Verification Server
+```
+
+The secret must remain confidential.
+
+---
+
+### Asymmetric signing
+
+Examples:
+
+```text
+RS256
+ES256
+```
+
+These use a key pair:
+
+```text
+Private Key → signs token
+
+Public Key → verifies token
+```
+
+This is useful when multiple services need to verify tokens without receiving the private signing key.
+
+### Important principle
+
+The private/signing key or symmetric secret must never be exposed to clients.
+
+---
+
+# 18. JWT Shelf Life
+
+JWTs should have an explicit expiration time.
+
+The `exp` claim defines when the token becomes invalid.
+
+Example conceptually:
+
+```text
+Issued:
+10:00 AM
+
+Expires:
+10:15 AM
+```
+
+Therefore:
+
+```text
+Token lifetime = 15 minutes
+```
+
+A common design is:
+
+```text
+Short-lived Access Token
+        +
+Longer-lived Refresh Token
+```
+
+This provides a balance between security and usability.
+
+---
+
+# 19. Why Short-Lived Access Tokens?
+
+Suppose an attacker steals an access token.
+
+If it is valid for:
+
+```text
+30 days
+```
+
+the attacker potentially has a long period in which to use it.
+
+If it is valid for:
+
+```text
+15 minutes
+```
+
+the exposure window is much smaller.
+
+Therefore:
+
+```text
+Short lifetime
+      ↓
+Smaller stolen-token window
+```
+
+But very short lifetimes can affect usability, so refresh-token mechanisms are commonly used.
+
+---
+
+# 20. Refresh Tokens
+
+A refresh token is used to obtain a new access token without requiring the user to enter their password again.
+
+Typical architecture:
+
+```text
+Login
+  ↓
+Access Token ───────→ Short lifetime
+  +
+Refresh Token ──────→ Longer lifetime
+```
+
+When the access token expires:
+
+```text
+Refresh Token
+      ↓
+Authentication Server
+      ↓
+New Access Token
+```
+
+Refresh tokens require careful storage, rotation, expiration, and revocation design.
+
+---
+
+# 21. JWT Verification
+
+When a protected request arrives:
+
+```text
+Request
+   ↓
+Authorization Header
+   ↓
+Extract JWT
+   ↓
+Verify signature
+   ↓
+Check expiration
+   ↓
+Validate claims
+   ↓
+Authenticated request
+```
+
+The server should validate more than just the signature when appropriate.
+
+It may verify:
+
+* signature
+* expiration
+* issuer
+* audience
+* token type
+* required claims
+* allowed algorithm
+
+---
+
+# 22. Authorization
+
+Authentication and authorization are different.
+
+### Authentication
+
+Answers:
+
+> **Who are you?**
+
+Example:
+
+```text
+User successfully logged in.
+```
+
+### Authorization
+
+Answers:
+
+> **What are you allowed to do?**
+
+Example:
+
+```text
+User is authenticated,
+but cannot delete products.
+```
+
+Flow:
+
+```text
+Authentication
+      ↓
+Who is the user?
+      ↓
+Authorization
+      ↓
+What can the user do?
+```
+
+---
+
+# 23. RBAC
+
+**RBAC = Role-Based Access Control**
+
+Instead of assigning permissions individually to every user, permissions are grouped into roles.
+
+Example:
+
+```text
+Roles
+│
+├── user
+├── manager
+└── admin
+```
+
+Permissions:
+
+```text
+user
+ ├── View products
+ └── Create orders
+
+manager
+ ├── View products
+ ├── Manage orders
+ └── View reports
+
+admin
+ ├── Manage users
+ ├── Manage products
+ ├── Manage orders
+ └── Manage system settings
+```
+
+---
+
+# 24. RBAC Middleware
+
+Authorization middleware usually runs after authentication.
+
+```text
+Request
+   ↓
+Authentication Middleware
+   ↓
+Identify user
+   ↓
+Authorization Middleware
+   ↓
+Check role
+   ↓
+Controller
+```
+
+Conceptually:
+
+```js
+authenticate
+authorize("admin")
+controller
+```
+
+The authentication middleware establishes the identity.
+
+The authorization middleware checks whether that identity has sufficient privileges.
+
+---
+
+# 25. Why Middleware Is Used for RBAC
+
+Without middleware, authorization logic could become duplicated:
+
+```text
+Route 1 → check admin
+Route 2 → check admin
+Route 3 → check admin
+Route 4 → check admin
+```
+
+With middleware:
+
+```text
+authorize("admin")
+```
+
+can be reused across many routes.
+
+This provides:
+
+* centralized authorization logic
+* reusable security rules
+* cleaner controllers
+* easier maintenance
+* consistent access control
+
+---
+
+# 26. 401 vs 403
+
+These status codes are frequently confused.
+
+### 401 Unauthorized
+
+Usually means the request does not have valid authentication credentials.
+
+Examples:
+
+```text
+Missing token
+Invalid token
+Expired token
+```
+
+### 403 Forbidden
+
+The server understands who the caller is, but the caller does not have permission.
+
+Example:
+
+```text
+Authenticated user
+       ↓
+Role = user
+       ↓
+DELETE /admin/users
+       ↓
+403 Forbidden
+```
+
+Remember:
+
+```text
+401 → Authentication problem
+
+403 → Authorization problem
+```
+
+---
+
+# 27. Helmet
+
+**Helmet** is middleware for Express that helps configure security-related HTTP response headers.
+
+Install:
+
+```bash
+npm install helmet
+```
+
+Use:
+
+```js
+app.use(helmet());
+```
+
+Helmet can help configure protections involving headers such as:
+
+* Content-Security-Policy
+* Strict-Transport-Security
+* X-Content-Type-Options
+* Referrer-Policy
+* frame-related protections
+* other browser security policies
+
+The exact headers and defaults depend on the Helmet version and configuration.
+
+---
+
+# 28. Why Security Headers Matter
+
+Browsers interpret HTTP response headers and use them to apply security policies.
+
+For example:
+
+```text
+Express
+   ↓
+Response
+   ↓
+Security Headers
+   ↓
+Browser
+   ↓
+Apply security restrictions
+```
+
+Without suitable security policies, an application may have unnecessary exposure to certain browser-based attacks.
+
+Helmet provides a standardized way to configure several of these headers.
+
+---
+
+# 29. Content Security Policy
+
+One important security mechanism is **Content-Security-Policy (CSP)**.
+
+CSP allows an application to specify which sources the browser is allowed to load scripts, styles, images, and other resources from.
+
+Conceptually:
+
+```text
+Content-Security-Policy
+        ↓
+Allowed resources
+        ↓
+Browser blocks unauthorized resources
+```
+
+CSP is particularly useful for reducing the impact of certain XSS attacks.
+
+However, CSP must be configured according to the application's actual frontend requirements.
+
+---
+
+# 30. CORS
+
+**CORS = Cross-Origin Resource Sharing**
+
+CORS controls which browser origins are allowed to make cross-origin requests to your API.
+
+Suppose:
+
+```text
+Frontend
+http://localhost:5173
+```
+
+calls:
+
+```text
+Backend
+http://localhost:3000
+```
+
+The origins are different.
+
+The backend can specify which origins are allowed.
+
+---
+
+# 31. Origin
+
+An origin consists of:
+
+```text
+scheme + host + port
+```
+
+For example:
+
+```text
+https://example.com:443
+```
+
+is an origin.
+
+These are different origins:
+
+```text
+http://example.com
+https://example.com
+```
+
+and:
+
+```text
+https://example.com
+https://api.example.com
+```
+
+because the scheme or host differs.
+
+---
+
+# 32. CORS Allowlist
+
+A secure API can maintain an allowlist:
+
+```text
+Allowed Origins
+│
+├── https://app.example.com
+└── https://admin.example.com
+```
+
+Then requests from approved browser origins are permitted according to the configured CORS policy.
+
+Conceptually:
+
+```text
+Request
+   ↓
+Origin?
+   ↓
+┌───────────────┐
+│ Allowlisted?  │
+└───────┬───────┘
+       / \
+     Yes  No
+      ↓    ↓
+   Allow  Reject
+```
+
+---
+
+# 33. CORS Is Not Authentication
+
+This is an important distinction.
+
+CORS does **not** protect an API from non-browser clients.
+
+For example, an attacker can use:
+
+* curl
+* Postman
+* Python
+* another backend server
+
+without being constrained by browser CORS enforcement.
+
+Therefore:
+
+```text
+CORS
+≠
+Authentication
+```
+
+CORS is primarily a **browser security mechanism**.
+
+Authentication and authorization must still protect the API.
+
+---
+
+# 34. Avoid Unrestricted CORS
+
+A permissive configuration such as:
+
+```js
+cors()
+```
+
+allows broad cross-origin access according to the middleware's defaults.
+
+For production applications, explicitly define trusted origins where appropriate.
+
+For example:
+
+```text
+https://frontend.example.com
+```
+
+rather than allowing every origin unnecessarily.
+
+Also be especially careful when using:
+
+```text
+credentials: true
+```
+
+because credentialed cross-origin requests require appropriate, explicit origin configuration.
+
+---
+
+# 35. Express Rate Limiting
+
+`express-rate-limit` limits how frequently clients can call routes within a defined time window.
+
+Example concept:
+
+```text
+15-minute window
+        ↓
+100 requests
+        ↓
+Further requests
+        ↓
+429 Too Many Requests
+```
+
+It can help defend against:
+
+* brute-force attempts
+* repeated login attempts
+* automated scraping
+* excessive API requests
+* some denial-of-service-style application abuse
+
+It is **not** a complete DDoS solution.
+
+---
+
+# 36. Rate Limit Configuration
+
+A limiter generally has:
+
+```text
+window
++
+request limit
++
+response behavior
+```
+
+For example:
+
+```text
+Window:
+15 minutes
+
+Limit:
+100 requests
+```
+
+Once the limit is exceeded, the application can return:
+
+```http
+429 Too Many Requests
+```
+
+---
+
+# 37. Global vs Route-Specific Rate Limits
+
+Not every endpoint needs the same limit.
+
+A general API might have:
+
+```text
+100 requests / 15 minutes
+```
+
+Authentication endpoints should often be more restrictive.
+
+For example:
+
+```text
+Login:
+10 requests / 15 minutes
+```
+
+This is because login endpoints are attractive targets for password guessing.
+
+Conceptually:
+
+```text
+/api/*
+    ↓
+General rate limiter
+
+/api/auth/login
+    ↓
+Stricter authentication limiter
+```
+
+---
+
+# 38. Rate Limiting and Distributed Applications
+
+A basic in-memory rate limiter works well for simple applications and development.
+
+However, if your API runs on multiple server instances:
+
+```text
+              Load Balancer
+             /      |      \
+            ↓       ↓       ↓
+         Server  Server  Server
+            A       B       C
+```
+
+each server may otherwise maintain its own independent rate-limit state.
+
+For distributed deployments, use a shared store or infrastructure designed for distributed rate limiting.
+
+---
+
+# 39. Complete Security Layer
+
+A secure Express API can combine all these mechanisms:
+
+```text
+                    Client
+                       │
+                       ▼
+                ┌─────────────┐
+                │    CORS     │
+                │ Origin Check│
+                └──────┬──────┘
+                       ↓
+                ┌─────────────┐
+                │   Helmet    │
+                │   Headers   │
+                └──────┬──────┘
+                       ↓
+                ┌─────────────┐
+                │Rate Limiter │
+                └──────┬──────┘
+                       ↓
+                ┌─────────────┐
+                │    JWT      │
+                │Authentication│
+                └──────┬──────┘
+                       ↓
+                ┌─────────────┐
+                │    RBAC     │
+                │Authorization│
+                └──────┬──────┘
+                       ↓
+                ┌─────────────┐
+                │  Controller │
+                └──────┬──────┘
+                       ↓
+                   Database
+```
+
+---
+
+# 40. How the Technologies Fit Together
+
+| Technology         | Main Purpose       | Protects Against / Solves                  |
+| ------------------ | ------------------ | ------------------------------------------ |
+| bcrypt             | Password hashing   | Password exposure                          |
+| Argon2             | Password hashing   | Password cracking                          |
+| JWT                | Authentication     | Stateless identity verification            |
+| JWT signing key    | Token integrity    | Token tampering                            |
+| RBAC               | Authorization      | Unauthorized functionality                 |
+| Helmet             | Security headers   | Browser/security-header risks              |
+| CORS               | Origin control     | Unauthorized browser cross-origin requests |
+| express-rate-limit | Request throttling | Brute force and automated abuse            |
+
+---
+
+# 41. End-to-End Authentication Architecture
+
+A typical secure flow is:
+
+```text
+                REGISTRATION
+
+Password
+   ↓
+bcrypt / Argon2
+   ↓
+Password Hash
+   ↓
+Database
+```
+
+Then:
+
+```text
+                   LOGIN
+
+Email + Password
+       ↓
+Find User
+       ↓
+Verify Hash
+       ↓
+Valid?
+  ┌────┴────┐
+ No        Yes
+ ↓           ↓
+401       Issue JWT
+              ↓
+       Short-lived token
+```
+
+Then:
+
+```text
+              PROTECTED REQUEST
+
+Client
+  │
+  │ Authorization: Bearer JWT
+  ↓
+CORS
+  ↓
+Rate Limiter
+  ↓
+JWT Verification
+  ↓
+Authentication
+  ↓
+RBAC
+  ↓
+Authorization
+  ↓
+Controller
+  ↓
+Database
+```
+
+---
+
+# 42. Recommended Security Principles
+
+### 1. Never store plaintext passwords
+
+Use:
+
+```text
+Argon2id / bcrypt
+```
+
+### 2. Never put secrets in JWT payloads
+
+JWT payloads are normally readable by whoever possesses the token.
+
+### 3. Keep signing keys outside source code
+
+Use:
+
+```text
+Environment variables
+Secret managers
+Key-management systems
+```
+
+depending on deployment requirements.
+
+### 4. Give access tokens a finite lifetime
+
+Avoid unnecessarily long-lived access tokens.
+
+### 5. Validate JWT claims
+
+Don't only check that a token "looks like a JWT."
+
+Validate:
+
+```text
+signature
+expiration
+issuer
+audience
+algorithm
+required claims
+```
+as appropriate.
+
+### 6. Separate authentication and authorization
+```text
+Authentication → identity
+Authorization → permissions
+```
+
+### 7. Use least privilege
+Users should receive only the permissions they need.
+
+### 8. Configure CORS explicitly
+Allow only trusted browser origins where possible.
+
+### 9. Apply rate limits strategically
+Use stricter limits for sensitive endpoints such as login, password reset, OTP, and account recovery.
+
+### 10. Use HTTPS
+Passwords, JWTs, and other credentials should not travel over unencrypted HTTP in production.
