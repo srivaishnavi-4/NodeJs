@@ -20,7 +20,7 @@ Structuring cleanly using express.Router() to segment paths (e.g., /api/v1/users
 Practice: Build a fully routed "Task Manager" API with hardcoded mock memory data that supports pagination via query parameters
  and nested sub-resource routing (e.g., /tasks/:id/comments)
 
-Module 3: Middleware Mechanics & Data Validation
+Module 3: Middleware Mechanics & Data Validation-C
 Master the lifecycle of an Express request and implement strict validation rules to protect your backend application logic.
 Core Concepts:
 The linear execution pipeline of application-level, router-level, and custom middleware.
@@ -30,7 +30,7 @@ Request payload validation schemas using Zod or Joi to catch dirty inputs before
 Practice: Refactor your previous API to incorporate a centralized error handler that intercepts 404 and 500 errors gracefully. 
 Add strict validation middleware that validates email structures and date formats on incoming requests, returning clean error arrays to clients
 
-Module 4: Database Integration & Object Relational Mapping (ORM/ODM)
+Module 4: Database Integration & Object Relational Mapping (ORM/ODM)-C
 Establish data persistence by connecting your application securely to a database.
 Core Concepts:
 Relational vs. Non-Relational data modeling for Node.js (SQL vs. NoSQL).

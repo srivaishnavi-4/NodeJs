@@ -5719,8 +5719,6 @@ Helmet can help configure protections involving headers such as:
 
 The exact headers and defaults depend on the Helmet version and configuration.
 
----
-
 # 28. Why Security Headers Matter
 
 Browsers interpret HTTP response headers and use them to apply security policies.
@@ -5743,8 +5741,6 @@ Without suitable security policies, an application may have unnecessary exposure
 
 Helmet provides a standardized way to configure several of these headers.
 
----
-
 # 29. Content Security Policy
 
 One important security mechanism is **Content-Security-Policy (CSP)**.
@@ -5764,8 +5760,6 @@ Browser blocks unauthorized resources
 CSP is particularly useful for reducing the impact of certain XSS attacks.
 
 However, CSP must be configured according to the application's actual frontend requirements.
-
----
 
 # 30. CORS
 
@@ -5790,8 +5784,6 @@ http://localhost:3000
 The origins are different.
 
 The backend can specify which origins are allowed.
-
----
 
 # 31. Origin
 
@@ -5824,8 +5816,6 @@ https://api.example.com
 ```
 
 because the scheme or host differs.
-
----
 
 # 32. CORS Allowlist
 
@@ -6213,3 +6203,1623 @@ Use stricter limits for sensitive endpoints such as login, password reset, OTP, 
 
 ### 10. Use HTTPS
 Passwords, JWTs, and other credentials should not travel over unencrypted HTTP in production.
+
+# MODULE6
+## Express.js — Testing, Redis Caching, PM2 & Production Deployment
+
+## 1. Automated Endpoint Assertion Testing in Express.js
+
+### 1.1 Theory
+
+In an Express.js application, APIs are exposed through endpoints such as `GET`, `POST`, `PUT`, and `DELETE`. As the application grows, manually testing every endpoint using tools such as Postman becomes time-consuming.
+**Automated endpoint assertion testing** solves this problem by allowing a testing framework to send requests to Express.js endpoints and automatically verify whether the responses are correct.
+
+A test can verify:
+
+* HTTP status codes
+* Response body
+* Response headers
+* Validation errors
+* Authentication behavior
+* Error responses
+* CRUD operations
+* Middleware behavior
+
+A common combination is:
+
+**Jest/Node.js Test Runner + Supertest + Express.js**
+
+### 1.2 Definition
+
+**Endpoint assertion testing** is the process of automatically sending HTTP requests to an Express.js endpoint and comparing the actual response with the expected result.
+
+For example, if:
+
+```text
+GET /api/users
+```
+
+is expected to return:
+
+```text
+HTTP 200
+```
+
+the automated test verifies that the endpoint actually returns `200`.
+
+The test can also verify that the response contains the expected user information.
+
+### 1.3 Why it is used
+
+Automated endpoint testing is used because it:
+
+* Reduces manual API testing
+* Detects bugs early
+* Prevents regression
+* Verifies API contracts
+* Tests success and failure scenarios
+* Makes testing repeatable
+* Can run automatically during CI/CD
+
+### 1.4 How it works
+
+The testing process is:
+
+```text
+Test File
+    ↓
+Supertest
+    ↓
+HTTP Request
+    ↓
+Express Application
+    ↓
+Middleware
+    ↓
+Route
+    ↓
+Controller / Business Logic
+    ↓
+Response
+    ↓
+Supertest receives response
+    ↓
+Jest performs assertions
+```
+
+An **assertion** is simply a statement that verifies whether the actual result matches the expected result.
+
+For example:
+
+```text
+Expected status → 200
+Actual status   → 200
+
+Result → PASS
+```
+
+### 1.5 Architecture / Flow
+
+```text
+                    Express.js Application
+                           │
+                           ▼
+                    ┌─────────────┐
+                    │   Router    │
+                    └──────┬──────┘
+                           │
+                           ▼
+                    ┌─────────────┐
+                    │ Middleware  │
+                    └──────┬──────┘
+                           │
+                           ▼
+                    ┌─────────────┐
+                    │ Controller  │
+                    └──────┬──────┘
+                           │
+                           ▼
+                       Response
+                           │
+                           ▼
+                     Supertest
+                           │
+                           ▼
+                     Assertions
+                           │
+                     ┌─────┴─────┐
+                     ▼           ▼
+                   PASS         FAIL
+```
+
+### 1.6 Important Concepts
+
+#### Supertest
+
+Supertest is used to make HTTP requests against an Express application during testing.
+
+It allows a test to simulate requests such as:
+
+```text
+GET /api/users
+POST /api/users
+PUT /api/users/1
+DELETE /api/users/1
+```
+
+without manually starting the application and using Postman.
+
+#### Jest
+
+Jest is a JavaScript testing framework.
+
+It provides:
+
+* Test cases
+* Assertions
+* Test suites
+* Setup and cleanup
+* Test result reporting
+
+#### Node.js Native Test Runner
+
+Modern Node.js also provides its own built-in test runner through the `node:test` module.
+
+This means Express applications can be tested without necessarily using Jest.
+
+#### Status-code assertion
+
+Verifies whether the API returned the expected HTTP status.
+
+Common examples:
+
+```text
+200 → Successful request
+201 → Resource created
+400 → Bad request
+401 → Unauthorized
+403 → Forbidden
+404 → Resource not found
+500 → Server error
+```
+
+#### Response-body assertion
+
+Checks whether the returned JSON contains the expected data.
+
+#### Negative testing
+
+Testing is not limited to successful requests.
+
+For example:
+
+```text
+Valid email     → 201
+Invalid email   → 400
+Missing user    → 404
+Unauthorized    → 401
+```
+
+---
+
+# 2. POC — Automated Endpoint Testing
+
+## 2.1 Folder Structure
+
+```text
+express-testing-poc/
+│
+├── src/
+│   ├── app.js
+│   └── server.js
+│
+├── tests/
+│   └── user.test.js
+│
+├── package.json
+└── package-lock.json
+```
+
+## 2.2 Install Packages
+
+```bash
+npm init -y
+npm install express
+npm install --save-dev jest supertest
+```
+
+Update `package.json`:
+
+```json
+{
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "jest"
+  }
+}
+```
+
+## 2.3 `src/app.js`
+
+```javascript
+const express = require("express");
+
+const app = express();
+
+app.use(express.json());
+
+const users = [
+    {
+        id: 1,
+        name: "Vaishu",
+        email: "vaishu@example.com"
+    }
+];
+
+app.get("/api/users", (req, res) => {
+    res.status(200).json({
+        success: true,
+        users
+    });
+});
+
+app.get("/api/users/:id", (req, res) => {
+
+    const id = Number(req.params.id);
+
+    const user = users.find(user => user.id === id);
+
+    if (!user) {
+        return res.status(404).json({
+            success: false,
+            message: "User not found"
+        });
+    }
+
+    res.status(200).json({
+        success: true,
+        user
+    });
+});
+
+module.exports = app;
+```
+
+## 2.4 `src/server.js`
+
+```javascript
+const app = require("./app");
+
+const PORT = 3000;
+
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});
+```
+
+## 2.5 `tests/user.test.js`
+
+```javascript
+const request = require("supertest");
+const app = require("../src/app");
+
+describe("User API", () => {
+
+    test("GET /api/users should return users", async () => {
+
+        const response = await request(app)
+            .get("/api/users");
+
+        expect(response.statusCode).toBe(200);
+
+        expect(response.body.success).toBe(true);
+
+        expect(response.body.users).toHaveLength(1);
+
+        expect(response.body.users[0].name)
+            .toBe("Vaishu");
+    });
+
+    test("GET /api/users/1 should return a user", async () => {
+
+        const response = await request(app)
+            .get("/api/users/1");
+
+        expect(response.statusCode).toBe(200);
+
+        expect(response.body.user.id).toBe(1);
+    });
+
+    test("GET /api/users/999 should return 404", async () => {
+
+        const response = await request(app)
+            .get("/api/users/999");
+
+        expect(response.statusCode).toBe(404);
+
+        expect(response.body.success).toBe(false);
+
+        expect(response.body.message)
+            .toBe("User not found");
+    });
+
+});
+```
+
+## 2.6 Run Commands
+
+Run the tests:
+
+```bash
+npm test
+```
+
+Run the Express application:
+
+```bash
+npm start
+```
+
+## 2.7 Expected Output
+
+```text
+PASS  tests/user.test.js
+
+User API
+  ✓ GET /api/users should return users
+  ✓ GET /api/users/1 should return a user
+  ✓ GET /api/users/999 should return 404
+
+Test Suites: 1 passed
+Tests:       3 passed
+```
+
+---
+
+# 3. Redis Caching for Performance Scaling in Express.js
+
+## 3.1 Theory
+
+An Express.js API commonly communicates with a database.
+
+Consider an endpoint:
+
+```text
+GET /api/products
+```
+
+If thousands of users repeatedly request the same products, every request may execute the same database query.
+
+This creates unnecessary:
+
+* Database CPU usage
+* Database connections
+* Network traffic
+* Query processing
+* API response time
+
+**Redis caching** can store frequently requested data in memory.
+
+Instead of querying the database every time, Express can first check Redis.
+
+### 3.2 Definition
+
+**Redis caching** is the process of storing frequently accessed application data in Redis so that future requests can retrieve that data faster instead of repeatedly querying the database.
+
+Redis is an **in-memory data store**, meaning frequently accessed data can be retrieved much faster than repeatedly performing database queries.
+
+### 3.3 Why it is used
+
+Redis is commonly used to:
+
+* Reduce database load
+* Improve API response time
+* Handle high request volumes
+* Store temporary data
+* Cache expensive queries
+* Store sessions
+* Implement rate limiting
+* Store frequently accessed API responses
+
+### 3.4 How it works
+
+A common pattern is called **Cache-Aside**.
+
+```text
+Client
+  ↓
+Express API
+  ↓
+Check Redis
+  │
+  ├── Cache HIT
+  │      ↓
+  │   Return data
+  │
+  └── Cache MISS
+         ↓
+      Database
+         ↓
+      Store in Redis
+         ↓
+      Return data
+```
+
+### 3.5 Architecture / Flow
+
+```text
+             Client
+                │
+                ▼
+         Express.js API
+                │
+                ▼
+            Redis
+          /       \
+       HIT         MISS
+        │            │
+        │            ▼
+        │        Database
+        │            │
+        │            ▼
+        │         Redis
+        │            │
+        └──────┬─────┘
+               ▼
+            Response
+```
+
+### 3.6 Important Concepts
+
+#### Cache Hit
+
+The requested data already exists in Redis.
+
+```text
+Request
+   ↓
+Redis
+   ↓
+Data found
+   ↓
+Return immediately
+```
+
+#### Cache Miss
+
+The requested data does not exist in Redis.
+
+```text
+Request
+   ↓
+Redis
+   ↓
+Data not found
+   ↓
+Database
+   ↓
+Store in Redis
+   ↓
+Return response
+```
+
+#### TTL
+
+**TTL — Time To Live** determines how long cached data should remain available.
+
+For example:
+
+```text
+Product cache
+TTL = 60 seconds
+```
+
+After 60 seconds, Redis automatically expires the cached value.
+
+#### Cache Invalidation
+
+When database data changes, the corresponding cached value may become outdated.
+
+For example:
+
+```text
+Database:
+Product price = ₹100
+
+Redis:
+Product price = ₹100
+```
+
+If the database changes:
+
+```text
+Database:
+Product price = ₹120
+```
+
+but Redis still contains:
+
+```text
+₹100
+```
+
+the API could return stale data.
+
+Therefore, applications need a cache invalidation strategy.
+
+---
+
+# 4. POC — Redis Caching with Express.js
+
+## 4.1 Folder Structure
+
+```text
+express-redis-poc/
+│
+├── src/
+│   ├── app.js
+│   ├── server.js
+│   └── redis.js
+│
+├── package.json
+└── package-lock.json
+```
+
+## 4.2 Install Packages
+
+```bash
+npm init -y
+npm install express redis
+```
+
+Redis must also be running locally or be available through a Redis server.
+
+## 4.3 `src/redis.js`
+
+```javascript
+const { createClient } = require("redis");
+
+const redisClient = createClient({
+    url: "redis://localhost:6379"
+});
+
+redisClient.on("error", (error) => {
+    console.error("Redis Error:", error);
+});
+
+async function connectRedis() {
+    await redisClient.connect();
+    console.log("Redis connected");
+}
+
+module.exports = {
+    redisClient,
+    connectRedis
+};
+```
+
+## 4.4 `src/app.js`
+
+```javascript
+const express = require("express");
+const { redisClient } = require("./redis");
+
+const app = express();
+
+app.use(express.json());
+
+const products = [
+    {
+        id: 1,
+        name: "Laptop",
+        price: 75000
+    },
+    {
+        id: 2,
+        name: "Mobile",
+        price: 30000
+    }
+];
+
+app.get("/api/products", async (req, res) => {
+
+    try {
+
+        const cachedProducts =
+            await redisClient.get("products");
+
+        if (cachedProducts) {
+
+            console.log("CACHE HIT");
+
+            return res.status(200).json({
+                source: "redis",
+                products: JSON.parse(cachedProducts)
+            });
+        }
+
+        console.log("CACHE MISS");
+
+        await new Promise(resolve =>
+            setTimeout(resolve, 2000)
+        );
+
+        await redisClient.setEx(
+            "products",
+            60,
+            JSON.stringify(products)
+        );
+
+        res.status(200).json({
+            source: "database",
+            products
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+});
+
+module.exports = app;
+```
+
+## 4.5 `src/server.js`
+
+```javascript
+const app = require("./app");
+const { connectRedis } = require("./redis");
+
+const PORT = 3000;
+
+async function startServer() {
+
+    await connectRedis();
+
+    app.listen(PORT, () => {
+        console.log(
+            `Server running on http://localhost:${PORT}`
+        );
+    });
+}
+
+startServer();
+```
+
+## 4.6 Run Commands
+
+Start Redis.
+
+Then:
+
+```bash
+node src/server.js
+```
+
+Open:
+
+```text
+GET http://localhost:3000/api/products
+```
+
+### First request
+
+```text
+CACHE MISS
+```
+
+Response:
+
+```json
+{
+    "source": "database",
+    "products": [
+        {
+            "id": 1,
+            "name": "Laptop",
+            "price": 75000
+        },
+        {
+            "id": 2,
+            "name": "Mobile",
+            "price": 30000
+        }
+    ]
+}
+```
+
+### Second request
+
+```text
+CACHE HIT
+```
+
+Response:
+
+```json
+{
+    "source": "redis",
+    "products": [
+        {
+            "id": 1,
+            "name": "Laptop",
+            "price": 75000
+        },
+        {
+            "id": 2,
+            "name": "Mobile",
+            "price": 30000
+        }
+    ]
+}
+```
+
+The first request represents a **cache miss**, while subsequent requests within the TTL can be served directly from Redis.
+
+---
+
+# 5. PM2 Process Management in Express.js
+
+## 5.1 Theory
+
+Node.js applications use an event-driven architecture and normally execute JavaScript on a single main thread.
+
+A server running as a single Node.js process cannot fully utilize all CPU cores for JavaScript execution.
+
+For production applications, multiple Express.js processes can be created so that incoming requests can be distributed across available CPU cores.
+
+**PM2** is a production process manager commonly used for Node.js applications.
+
+### 5.2 Definition
+
+PM2 is a process manager for Node.js applications that can:
+
+* Start applications
+* Restart crashed processes
+* Run multiple application instances
+* Manage application logs
+* Support cluster mode
+* Perform graceful reloads
+* Keep applications running in production
+
+### 5.3 Why it is used
+
+Without process management:
+
+```text
+Express Process
+     ↓
+Application crashes
+     ↓
+Server unavailable
+```
+
+With PM2:
+
+```text
+Express Process
+     ↓
+Application crashes
+     ↓
+PM2 detects failure
+     ↓
+Process restarted
+```
+
+### 5.4 How clustering works
+
+Suppose the machine has:
+
+```text
+CPU Core 1
+CPU Core 2
+CPU Core 3
+CPU Core 4
+```
+
+PM2 can create multiple Express instances.
+
+```text
+                PM2
+                 │
+       ┌─────────┼─────────┐
+       ▼         ▼         ▼
+   Express 1  Express 2  Express 3
+       │         │         │
+       └─────────┼─────────┘
+                 ▼
+              Requests
+```
+
+PM2 distributes incoming connections between processes.
+
+### 5.5 Architecture / Flow
+
+```text
+                    Client
+                       │
+                       ▼
+                PM2 Load Balancer
+                 │      │      │
+                 ▼      ▼      ▼
+              Node 1  Node 2  Node 3
+                 │      │      │
+                 └──────┼──────┘
+                        ▼
+                    Database
+```
+
+### 5.6 Important Concepts
+
+#### Fork Mode
+
+Runs a normal Node.js process.
+
+#### Cluster Mode
+
+Creates multiple Node.js instances that can share the same server port and distribute incoming requests.
+
+#### Load Balancing
+
+Requests are distributed between available application processes.
+
+#### Process Recovery
+
+PM2 can automatically restart a process when it crashes.
+
+#### Stateless Application
+
+Clustered applications should generally avoid storing important request state inside a single process's memory.
+
+For example, this is problematic:
+
+```text
+User login
+   ↓
+Process 1 memory
+```
+
+A later request could reach:
+
+```text
+Process 2
+```
+
+and Process 2 would not have Process 1's memory.
+
+Shared systems such as Redis or a database should therefore be used for shared state.
+
+---
+
+# 6. POC — PM2 with Express.js
+
+## 6.1 Folder Structure
+
+```text
+express-pm2-poc/
+│
+├── src/
+│   └── server.js
+│
+├── ecosystem.config.js
+└── package.json
+```
+
+## 6.2 Install
+
+```bash
+npm init -y
+npm install express
+npm install pm2 --save-dev
+```
+
+## 6.3 `src/server.js`
+
+```javascript
+const express = require("express");
+
+const app = express();
+
+const PORT = 3000;
+
+app.get("/", (req, res) => {
+
+    res.json({
+        message: "Express application running",
+        processId: process.pid
+    });
+
+});
+
+app.get("/api/users", (req, res) => {
+
+    res.json({
+        users: [
+            {
+                id: 1,
+                name: "Vaishu"
+            }
+        ],
+        processId: process.pid
+    });
+
+});
+
+app.listen(PORT, () => {
+
+    console.log(
+        `Server running on port ${PORT}`
+    );
+
+    console.log(
+        `Process ID: ${process.pid}`
+    );
+
+});
+```
+
+## 6.4 `ecosystem.config.js`
+
+```javascript
+module.exports = {
+    apps: [
+        {
+            name: "express-api",
+            script: "./src/server.js",
+            instances: "max",
+            exec_mode: "cluster",
+            autorestart: true,
+            watch: false
+        }
+    ]
+};
+```
+
+### Explanation
+
+```text
+instances: "max"
+```
+
+tells PM2 to create instances based on the available CPU cores.
+
+```text
+exec_mode: "cluster"
+```
+
+enables PM2 cluster mode.
+
+```text
+autorestart: true
+```
+
+allows PM2 to restart the application if a process terminates unexpectedly.
+
+## 6.5 Run Commands
+
+Start the application:
+
+```bash
+npx pm2 start ecosystem.config.js
+```
+
+Check processes:
+
+```bash
+npx pm2 list
+```
+
+View logs:
+
+```bash
+npx pm2 logs
+```
+
+Check application:
+
+```text
+http://localhost:3000
+```
+
+Stop:
+
+```bash
+npx pm2 stop express-api
+```
+
+Delete:
+
+```bash
+npx pm2 delete express-api
+```
+
+## 6.6 Expected Output
+
+PM2 will show multiple application instances:
+
+```text
+┌────┬──────────────┬────────┬─────────┐
+│ id │ name         │ mode   │ status  │
+├────┼──────────────┼────────┼─────────┤
+│ 0  │ express-api  │ cluster│ online  │
+│ 1  │ express-api  │ cluster│ online  │
+│ 2  │ express-api  │ cluster│ online  │
+│ 3  │ express-api  │ cluster│ online  │
+└────┴──────────────┴────────┴─────────┘
+```
+
+Requests may be handled by different processes:
+
+```json
+{
+    "message": "Express application running",
+    "processId": 12340
+}
+```
+
+Another request:
+
+```json
+{
+    "message": "Express application running",
+    "processId": 15220
+}
+```
+
+This demonstrates that multiple Express processes are participating in handling requests.
+
+---
+
+# 7. Production Deployment of Express.js
+
+## 7.1 Theory
+
+Development and production environments have different requirements.
+
+During development, an application may use:
+
+```text
+Development configuration
+Detailed errors
+Console debugging
+Local database
+Development dependencies
+```
+
+Production requires:
+
+```text
+Secure configuration
+Production database
+Error handling
+Structured logging
+Process management
+Monitoring
+Performance optimization
+```
+
+### 7.2 Definition
+
+**Production deployment** is the process of making an Express.js application available to real users in a production environment.
+
+The application is typically deployed to a cloud server or cloud platform.
+
+### 7.3 Why it is used
+
+Production configuration helps:
+
+* Improve reliability
+* Protect sensitive configuration
+* Improve performance
+* Manage application failures
+* Monitor application behavior
+* Handle real user traffic
+* Automate deployments
+
+---
+
+# 8. NODE_ENV
+
+`NODE_ENV` identifies the environment in which the Express application is running.
+
+Common values are:
+
+```text
+development
+test
+production
+```
+
+For example:
+
+```text
+NODE_ENV=development
+```
+
+means the application is running in development.
+
+```text
+NODE_ENV=production
+```
+
+indicates a production environment.
+
+Express and other Node.js libraries can use this information to change behavior appropriately.
+
+### Production flow
+
+```text
+NODE_ENV=production
+        ↓
+Production configuration
+        ↓
+Production logging
+        ↓
+Optimized behavior
+        ↓
+Production server
+```
+
+---
+
+# 9. Production Logging
+
+Logging is the process of recording important application events.
+
+Production applications should not depend only on:
+
+```javascript
+console.log()
+```
+
+for serious monitoring.
+
+Production logging should capture information such as:
+
+```text
+Request received
+Response status
+Response time
+Application errors
+Database errors
+Authentication failures
+System events
+```
+
+A production logging system should generally provide:
+
+* Log levels
+* Timestamps
+* Structured information
+* Error details
+* Request identifiers
+* Centralized storage
+
+Common log levels include:
+
+```text
+DEBUG
+INFO
+WARN
+ERROR
+```
+
+---
+
+# 10. Production Deployment Architecture
+
+A typical Express production architecture can look like:
+
+```text
+                    Internet
+                       │
+                       ▼
+                Reverse Proxy
+                 / Load Balancer
+                       │
+          ┌────────────┼────────────┐
+          ▼            ▼            ▼
+      Express 1    Express 2    Express 3
+          │            │            │
+          └────────────┼────────────┘
+                       │
+             ┌─────────┴─────────┐
+             ▼                   ▼
+          Redis              Database
+```
+
+A CI/CD pipeline sits alongside this architecture:
+
+```text
+Developer
+    │
+    ▼
+Git Repository
+    │
+    ▼
+CI Pipeline
+    │
+    ├── Install dependencies
+    ├── Run tests
+    ├── Validate application
+    │
+    ▼
+Build / Deployment
+    │
+    ▼
+Cloud Server
+    │
+    ▼
+PM2
+    │
+    ▼
+Express.js
+```
+
+---
+
+# 11. Production Deployment Pipeline
+
+## 11.1 Continuous Integration
+
+**Continuous Integration (CI)** automatically validates code whenever changes are pushed to the repository.
+
+Typical process:
+
+```text
+Git Push
+   ↓
+Install Dependencies
+   ↓
+Run Tests
+   ↓
+Validate Code
+   ↓
+Build
+```
+
+If testing fails:
+
+```text
+CI Pipeline
+     ↓
+Tests Failed
+     ↓
+Deployment Stopped
+```
+
+If testing succeeds:
+
+```text
+Tests Passed
+     ↓
+Continue Deployment
+```
+
+## 11.2 Continuous Deployment
+
+**Continuous Deployment (CD)** automatically deploys validated application changes to the target environment.
+
+```text
+Developer
+   ↓
+Git Push
+   ↓
+CI
+   ↓
+Tests
+   ↓
+Build
+   ↓
+Deployment
+   ↓
+Production
+```
+
+---
+
+# 12. POC — Express Production Configuration
+
+## 12.1 Folder Structure
+
+```text
+express-production-poc/
+│
+├── src/
+│   ├── app.js
+│   └── server.js
+│
+├── logs/
+│
+├── .env
+├── package.json
+└── ecosystem.config.js
+```
+
+## 12.2 Install Packages
+
+```bash
+npm init -y
+npm install express dotenv
+npm install pm2
+```
+
+## 12.3 `.env`
+
+```env
+NODE_ENV=production
+PORT=3000
+APP_NAME=ExpressProductionAPI
+```
+
+Environment variables should be used for configuration rather than hard-coding environment-specific values inside application logic.
+
+## 12.4 `src/app.js`
+
+```javascript
+const express = require("express");
+
+const app = express();
+
+app.use(express.json());
+
+app.get("/", (req, res) => {
+
+    res.status(200).json({
+        success: true,
+        application: process.env.APP_NAME,
+        environment: process.env.NODE_ENV,
+        message: "Production Express API is running"
+    });
+
+});
+
+app.get("/api/health", (req, res) => {
+
+    res.status(200).json({
+        status: "healthy",
+        environment: process.env.NODE_ENV,
+        timestamp: new Date().toISOString()
+    });
+
+});
+
+app.use((req, res) => {
+
+    res.status(404).json({
+        success: false,
+        message: "Route not found"
+    });
+
+});
+
+module.exports = app;
+```
+
+## 12.5 `src/server.js`
+
+```javascript
+require("dotenv").config();
+
+const app = require("./app");
+
+const PORT = process.env.PORT || 3000;
+
+const server = app.listen(PORT, () => {
+
+    console.log(
+        `${process.env.APP_NAME} running in ${process.env.NODE_ENV} mode`
+    );
+
+    console.log(
+        `Server running on port ${PORT}`
+    );
+
+});
+
+process.on("SIGTERM", () => {
+
+    console.log("SIGTERM received");
+
+    server.close(() => {
+
+        console.log("Server closed gracefully");
+
+        process.exit(0);
+
+    });
+
+});
+```
+
+### Why graceful shutdown is important
+
+When a production process needs to stop, it should not immediately terminate active requests.
+
+Instead:
+
+```text
+Shutdown signal
+      ↓
+Stop accepting new requests
+      ↓
+Finish existing requests
+      ↓
+Close database connections
+      ↓
+Close other resources
+      ↓
+Process exits
+```
+
+This is called **graceful shutdown**.
+
+## 12.6 `ecosystem.config.js`
+
+```javascript
+module.exports = {
+
+    apps: [
+
+        {
+            name: "express-production-api",
+
+            script: "./src/server.js",
+
+            instances: "max",
+
+            exec_mode: "cluster",
+
+            env_production: {
+                NODE_ENV: "production"
+            },
+
+            autorestart: true,
+
+            watch: false,
+
+            time: true
+        }
+
+    ]
+
+};
+```
+
+## 12.7 Run Commands
+
+Start normally:
+
+```bash
+node src/server.js
+```
+
+Or start using PM2:
+
+```bash
+npx pm2 start ecosystem.config.js --env production
+```
+
+Check processes:
+
+```bash
+npx pm2 list
+```
+
+View logs:
+
+```bash
+npx pm2 logs
+```
+
+Check the API:
+
+```text
+http://localhost:3000
+```
+
+Health check:
+
+```text
+http://localhost:3000/api/health
+```
+
+## 12.8 Expected Output
+
+```json
+{
+    "success": true,
+    "application": "ExpressProductionAPI",
+    "environment": "production",
+    "message": "Production Express API is running"
+}
+```
+
+Health endpoint:
+
+```json
+{
+    "status": "healthy",
+    "environment": "production",
+    "timestamp": "2026-10-05T..."
+}
+```
+
+PM2:
+
+```text
+express-production-api
+status: online
+mode: cluster
+instances: multiple
+```
+
+---
+
+# 13. How All Four Concepts Work Together
+
+These technologies solve different production problems but can be combined in one Express.js application.
+
+```text
+                         CLIENT
+                           │
+                           ▼
+                    Load Balancer
+                           │
+             ┌─────────────┼─────────────┐
+             ▼             ▼             ▼
+        Express #1    Express #2    Express #3
+             │             │             │
+             └─────────────┼─────────────┘
+                           │
+                           ▼
+                         Redis
+                           │
+                    Cache HIT / MISS
+                           │
+                           ▼
+                       Database
+```
+
+Testing happens before deployment:
+
+```text
+Developer
+    ↓
+Express Code
+    ↓
+Supertest + Jest
+    ↓
+Endpoint Assertions
+    ↓
+Tests Pass
+    ↓
+CI/CD
+    ↓
+Production
+    ↓
+PM2 Cluster
+    ↓
+Express Instances
+    ↓
+Redis
+    ↓
+Database
+```
+
+### Overall responsibility
+
+| Technology             | Main responsibility                  |
+| ---------------------- | ------------------------------------ |
+| **Supertest**          | Sends requests to Express endpoints  |
+| **Jest**               | Runs tests and assertions            |
+| **Redis**              | Caches frequently accessed data      |
+| **PM2**                | Manages and scales Node.js processes |
+| **NODE_ENV**           | Identifies application environment   |
+| **Production logging** | Records application events           |
+| **CI/CD**              | Automates testing and deployment     |
+| **Cloud platform**     | Hosts the production application     |
+
