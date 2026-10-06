@@ -1,62 +1,87 @@
 const express = require("express");
-
-const productRoutes =
-    require("./routes/productRoutes");
-
-const orderRoutes =
-    require("./routes/orderRoutes");
-
-const logger =
-    require("./middleware/logger");
-
-const {
-    notFoundHandler,
-    errorHandler
-} = require("./middleware/errorHandler");
+const helmet = require("helmet");
+const cors = require("cors");
+const rateLimit = require("express-rate-limit");
+const routes = require("./routes");
 
 const app = express();
 
+const helmetEnabled = process.env.HELMET_ENABLED === "true";
+const corsEnabled = process.env.CORS_ENABLED === "true";
+const rateLimitEnabled = process.env.RATE_LIMIT_ENABLED === "true";
 
-// Body parser
-app.use(express.json());
+if (helmetEnabled) {
+    app.use(helmet());
+}
 
+if (corsEnabled) {
+    const allowedOrigin = process.env.CLIENT_URL;
 
-// Request logger
-app.use(logger);
+    app.use(
+        cors({
+            origin: allowedOrigin || false,
+            credentials: true
+        })
+    );
+}
 
+app.use(
+    express.json({
+        limit: "10kb"
+    })
+);
 
-// Health check
-app.get("/health", (req, res) => {
-
-    res.status(200).json({
-        success: true,
-        status: "UP",
-        environment: process.env.NODE_ENV,
-        processId: process.pid,
-        timestamp: new Date().toISOString()
+if (rateLimitEnabled) {
+    const limiter = rateLimit({
+        windowMs:
+            Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+        limit:
+            Number(process.env.RATE_LIMIT_MAX) || 100,
+        standardHeaders: "draft-8",
+        legacyHeaders: false,
+        message: {
+            success: false,
+            message: "Too many requests. Try again later."
+        }
     });
 
+    app.use(limiter);
+}
+
+app.get("/health", (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "Server is healthy",
+        environment: process.env.NODE_ENV
+    });
 });
 
+app.use("/api/auth", routes);
 
-// API routes
-app.use(
-    "/api/products",
-    productRoutes
-);
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: `Route ${req.method} ${req.originalUrl} not found`
+    });
+});
 
-app.use(
-    "/api/orders",
-    orderRoutes
-);
+app.use((error, req, res, next) => {
+    console.error(error);
 
+    if (error.code === 11000) {
+        return res.status(409).json({
+            success: false,
+            message: "Duplicate value already exists"
+        });
+    }
 
-// 404 handler
-app.use(notFoundHandler);
-
-
-// Centralized error handler
-app.use(errorHandler);
-
+    res.status(500).json({
+        success: false,
+        message:
+            process.env.NODE_ENV === "production"
+                ? "Internal server error"
+                : error.message
+    });
+});
 
 module.exports = app;

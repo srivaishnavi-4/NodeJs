@@ -1,0 +1,25 @@
+{
+  "name":"food-delivery-tracking",
+  "version":"1.0.0",
+  "description":"Food delivery order tracking API with MongoDB, Redis, automated testing and PM2 clustering",
+  "main":"src/server.js",
+  "scripts":{
+    "start":"node src/server.js",
+    "dev":"node --watch src/server.js",
+    "test":"node --test tests/order.test.js",
+    "pm2:start":"pm2 start ecosystem.config.js",
+    "pm2:stop":"pm2 stop food-delivery-api",
+    "pm2:restart":"pm2 restart food-delivery-api",
+    "pm2:delete":"pm2 delete food-delivery-api",
+    "pm2:status":"pm2 status",
+    "pm2:logs":"pm2 logs food-delivery-api"
+  },
+  "engines":{"node":">=20"},
+  "dependencies":{
+    "dotenv":"^17.2.2",
+    "express":"^5.1.0",
+    "mongoose":"^8.18.0",
+    "redis":"^5.8.2",
+    "supertest":"^7.1.0"
+  }
+}

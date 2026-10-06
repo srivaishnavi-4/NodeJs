@@ -59,7 +59,9 @@ Automated endpoint assertion testing using the native Node.js test runner or Jes
 Performance scaling: Integrating a Redis layer to cache heavy database queries.
 Process management using PM2 to handle load balancing across multi-core server processors and configuring clustering models.
 Production deployment pipelines: Setting up NODE_ENV=production variables, managing production logs, and deploying to cloud infrastructure.
-Practice: Write a comprehensive suite of integration tests that test your login and database storage paths end-to-end. Deploy your production-ready, secured web server to a cloud hosting platform (like GCP, Render, Railway) with complete environment security toggles activated
+Practice: Write a comprehensive suite of integration tests that test your login and database storage paths end-to-end.
+ Deploy your production-ready, secured web server to a cloud hosting platform (like GCP, Render, Railway) with complete 
+ environment security toggles activated
  
  
 For each topic take 1 day for module and also practice. By Next Tuesday we should target to complete these modules. All the best!

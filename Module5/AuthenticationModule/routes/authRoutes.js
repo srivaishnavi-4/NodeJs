@@ -57,22 +57,19 @@ router.post("/register", async (req, res) => {
 
         const user = {
 
-            id: users.length + 1,
+    id: users.length + 1,
 
-            name,
+    name,
 
-            email,
+    email,
 
-            password: hashedPassword,
+    password: hashedPassword,
 
-            // In a real application,
-            // never allow users to make
-            // themselves admin.
-            role: role === "admin"
-                ? "user"
-                : "user"
+    role: users.length === 0
+        ? "admin"
+        : "user"
 
-        };
+};
 
 
         users.push(user);

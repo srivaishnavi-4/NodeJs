@@ -1,4 +1,3 @@
-let users = [];
-users[0].role = "admin";
+const users = [];
 
 module.exports = users;

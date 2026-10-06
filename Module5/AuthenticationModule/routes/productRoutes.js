@@ -28,6 +28,42 @@ const products = [
         id: 3,
         name: "Keyboard",
         price: 1500
+    },
+    
+    {
+        id: 4,
+        name: "Monitor",
+        price: 12000
+    },
+
+    {
+        id: 5,
+        name: "i-Mouse",
+        price: 8000
+    },
+
+    {
+        id: 6,
+        name: "i-Keyboard",
+        price: 15000
+    },
+    
+    {
+        id: 7,
+        name: "MacBook Pro",
+        price: 200000
+    },
+
+    {
+        id: 8,
+        name: "i-phone",
+        price: 1000000
+    },
+
+    {
+        id: 9,
+        name: "Samsung Galaxy",
+        price: 150000
     }
 
 ];
